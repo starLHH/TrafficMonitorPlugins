@@ -199,33 +199,41 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
         if (stock_id.find(L"nf_") == 0)
         {
             std::wstring symbol = stock_id.substr(3);
-            std::wstring url{L"http://stock2.finance.sina.com.cn/futures/api/json.php/IndexService.getInnerFuturesMiniKLine5m?symbol="};
+            std::wstring url{L"https://stock2.finance.sina.com.cn/futures/api/json.php/IndexService.getInnerFuturesMiniKLine5m?symbol="};
             url += symbol;
             CCommon::WriteLog(CCommon::UnicodeToStr(url.c_str(), true).c_str(), m_log_path.c_str());
 
-            CString strHeaders = _T("Referer: https://finance.sina.com.cn/futures/");
-            CInternetSession *session = new CInternetSession(WEB_USERAGENT);
-            CHttpFile *pFile = (CHttpFile *)session->OpenURL(CString(url.c_str()), 1, INTERNET_FLAG_TRANSFER_ASCII, strHeaders, strHeaders.GetLength());
-
-            DWORD dwStatusCode;
-            pFile->QueryInfoStatusCode(dwStatusCode);
-
-            if (dwStatusCode == HTTP_STATUS_OK)
+            try
             {
-                CString strData;
-                char szBuffer[1025];
-                int nRead;
-                while ((nRead = pFile->Read(szBuffer, 1024)) > 0)
-                {
-                    szBuffer[nRead] = 0;
-                    strData += CString(szBuffer);
-                }
-                stockMarket.LoadTimelineDataByJsonNf(stock_id, &strData);
-            }
+                CString strHeaders = _T("Referer: https://finance.sina.com.cn/futures/");
+                CInternetSession *session = new CInternetSession(WEB_USERAGENT);
+                CHttpFile *pFile = (CHttpFile *)session->OpenURL(CString(url.c_str()), 1, INTERNET_FLAG_TRANSFER_ASCII, strHeaders, strHeaders.GetLength());
 
-            pFile->Close();
-            delete pFile;
-            session->Close();
+                DWORD dwStatusCode;
+                pFile->QueryInfoStatusCode(dwStatusCode);
+
+                if (dwStatusCode == HTTP_STATUS_OK)
+                {
+                    CString strData;
+                    char szBuffer[1025];
+                    int nRead;
+                    while ((nRead = pFile->Read(szBuffer, 1024)) > 0)
+                    {
+                        szBuffer[nRead] = 0;
+                        strData += CString(szBuffer);
+                    }
+                    stockMarket.LoadTimelineDataByJsonNf(stock_id, &strData);
+                }
+
+                pFile->Close();
+                delete pFile;
+                session->Close();
+            }
+            catch (CInternetException *e)
+            {
+                e->Delete();
+                stockMarket.LoadTimelineDataByJsonNf(stock_id, NULL);
+            }
             return;
         }
 

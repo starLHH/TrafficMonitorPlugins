@@ -227,6 +227,11 @@ void STOCK::RealTimeData::LoadNF(std::vector<std::string> data, size_t size)
   prevClosePrice = {convert<Price>(data[5])};
   currentPrice = {convert<Price>(data[8])};
   volume = {convert<Volume>(data[14])};
+  Price upperLimit = (prevClosePrice > 0) ? (highPrice - prevClosePrice) : (highPrice - lowPrice);
+  Price lowerLimit = (prevClosePrice > 0) ? (prevClosePrice - lowPrice) : (highPrice - lowPrice);
+  priceLimit = (std::max)(upperLimit, lowerLimit);
+  if (priceLimit <= 0.0)
+    priceLimit = (highPrice - lowPrice) > 0 ? (highPrice - lowPrice) : 0.01;
   // 买一/卖一
   bidLevels[0] = {{convert<Price>(data[6])}, {convert<Volume>(data[11])}};
   askLevels[0] = {{convert<Price>(data[7])}, {convert<Volume>(data[12])}};
@@ -394,7 +399,7 @@ void STOCK::StockData::addTimelinePoint(const CString &json_data)
   }
 }
 
-// 新浪内盘期货 K 线接口返回: [[时间,开,高,低,收,量],...]，转为分时点(用收价、量、均价=(o+h+l+c)/4)
+// 新浪内盘期货 K 线接口返回: [[时间,开,高,低,收,量],...] 按时间倒序(新在前)，转为分时点并反转为时间正序(旧在前)便于绘图
 void STOCK::StockData::addTimelinePointFromFuturesJson(const CString &json_data)
 {
   std::string _json_data = CCommon::UnicodeToStr(json_data);
@@ -407,6 +412,7 @@ void STOCK::StockData::addTimelinePointFromFuturesJson(const CString &json_data)
     yyjson_doc_free(doc);
     return;
   }
+  std::vector<TimelinePoint> points;
   size_t idx, max;
   yyjson_val *item;
   yyjson_arr_foreach(root, idx, max, item)
@@ -441,7 +447,10 @@ void STOCK::StockData::addTimelinePointFromFuturesJson(const CString &json_data)
     point.price = close_p;
     point.volume = vol;
     point.averagePrice = (open_p + high_p + low_p + close_p) / 4.0;
-    addTimelinePoint(point);
+    points.push_back(point);
   }
   yyjson_doc_free(doc);
+  // 接口返回新→旧，绘图需要旧→新，故反向添加
+  for (auto it = points.rbegin(); it != points.rend(); ++it)
+    addTimelinePoint(*it);
 }

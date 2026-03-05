@@ -262,15 +262,20 @@ void CFloatingWnd::OnPaint()
         memDC.DrawText(middleTxt, middleTxtRect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
         std::vector<CPoint> dataPoints;
-        for (const STOCK::TimelinePoint &item : timelinePoint)
+        // nf_ 等时间为 "YYYY-MM-DD HH:MM:SS"，不能用 A 股当日时分秒算 X，改用索引均匀分布
+        bool useIndexX = (timelinePoint.size() > 0 && timelinePoint[0].time.find(' ') != std::string::npos);
+        for (size_t i = 0; i < timelinePoint.size(); i++)
         {
+            const STOCK::TimelinePoint &item = timelinePoint[i];
             CPoint p = Stock2Point(x, y, w, h, unitY, item, realtimeData.prevClosePrice);
+            if (useIndexX)
+                p.x = (timelinePoint.size() <= 1) ? x : (x + (int)(w * (double)i / (timelinePoint.size() - 1)));
             dataPoints.push_back(p);
         }
 
         int startY = static_cast<int>(halfH - (realtimeData.openPrice - realtimeData.prevClosePrice) * unitY * 100);
         memDC.MoveTo(x, startY);
-        for (int i = 0; i < dataPoints.size(); i++)
+        for (size_t i = 0; i < dataPoints.size(); i++)
         {
             int pX = dataPoints[i].x;
             int pY = static_cast<int>(halfH - dataPoints[i].y);
