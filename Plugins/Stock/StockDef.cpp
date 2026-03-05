@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -18,6 +18,8 @@ constexpr auto _DATA_LEN_SZ = 33;
 constexpr auto _DATA_LEN_BJ = 39;
 // 港股数据长度
 constexpr auto _DATA_LEN_HK = 25;
+// 期货数据长度(新浪 hf_ 格式，如 hf_XAU)
+constexpr auto _DATA_LEN_HF = 14;
 
 using namespace STOCK;
 
@@ -70,8 +72,12 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
     std::vector<std::string> data_arr = CCommon::split(data, ",");
 
     stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
-
     stockData->realTimeData.Load(key, data_arr);
+    // 期货(hf_)名称在最后一列，覆盖默认用首列
+    if (key.find(kHF) == 0 && data_arr.size() >= _DATA_LEN_HF)
+    {
+      stockData->info.displayName = CCommon::StrToUnicode(data_arr[13].c_str());
+    }
   }
 }
 
@@ -98,6 +104,12 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   else if (key.find(kHK) == 0)
   {
     LoadHK(data_arr, data_size);
+  }
+  else if (key.find(kHF) == 0)
+  {
+    LoadHF(data_arr, data_size);
+  }else{
+    LoadHF(data_arr, data_size);
   }
 
   if (currentPrice > 0 && prevClosePrice > 0)
@@ -195,6 +207,22 @@ void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
   lowPrice = {convert<Price>(data[5])};
   volume = {convert<Volume>(data[12])};
   turnover = {convert<Price>(data[11])};
+}
+
+// 新浪期货(hf_)格式: 现价,昨收,今开,?,最高,最低,时间,...,日期,名称
+void STOCK::RealTimeData::LoadHF(std::vector<std::string> data, size_t size)
+{
+  if (size < _DATA_LEN_HF)
+  {
+    return;
+  }
+  openPrice = {convert<Price>(data[2])};
+  prevClosePrice = {convert<Price>(data[1])};
+  currentPrice = {convert<Price>(data[0])};
+  highPrice = {convert<Price>(data[4])};
+  lowPrice = {convert<Price>(data[5])};
+  volume = {convert<Volume>(data[10])};
+  turnover = {convert<Amount>(data[11])};
 }
 
 void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString *pData)

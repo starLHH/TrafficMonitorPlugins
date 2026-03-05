@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Stock.h"
 #include "StockItem.h"
 #include <string>
@@ -13,6 +13,7 @@ constexpr auto kSZ = L"sz";    // 深圳
 constexpr auto kHK = L"rt_hk"; // 香港
 constexpr auto kMG = L"gb_";   // 美国
 constexpr auto kBJ = L"bj";    // 北京
+constexpr auto kHF = L"hf_";   // 期货(新浪格式)
 
 const std::vector<CString> StockTypeSet{kSH, kSZ, kHK, kMG, kBJ};
 

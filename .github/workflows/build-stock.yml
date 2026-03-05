@@ -1,0 +1,52 @@
+# 推送代码后自动在 GitHub 上编译 Stock 插件，并生成可下载的 DLL
+# 无需本地安装 Visual Studio C++ 桌面开发
+name: Build Stock Plugin
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Plugins/Stock/**'
+      - 'utilities/**'
+      - 'include/**'
+      - '.github/workflows/build-stock.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'Plugins/Stock/**'
+      - 'utilities/**'
+      - 'include/**'
+  workflow_dispatch:   # 允许在 Actions 页面手动触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC and Build Stock (x64)
+        shell: cmd
+        run: |
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          msbuild TrafficMonitorPlugins.sln /t:Stock /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Build Stock (x86)
+        shell: cmd
+        run: |
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars32.bat"
+          msbuild TrafficMonitorPlugins.sln /t:Stock /p:Configuration=Release /p:Platform=Win32 /v:minimal
+
+      - name: Upload Stock.dll (x64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stock-x64
+          path: bin/x64/Release/Stock.dll
+
+      - name: Upload Stock.dll (x86)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stock-x86
+          path: bin/Release/Stock.dll
