@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <StockDef.h>
 #include <TransparentWnd.h>
@@ -35,6 +35,4 @@ private:
     volatile BOOL m_isDestroying; // 添加销毁标志
     CFont *m_pfont{};
     CString loading_state_txt;
-
-    unsigned __int64 m_last_request_time{};
 };

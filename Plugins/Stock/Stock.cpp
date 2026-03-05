@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Stock.h"
 #include "DataManager.h"
 #include "OptionsDlg.h"
@@ -39,33 +39,26 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
         return 0;
     }
 
-    time_t cur_time = time(nullptr);
-    if (cur_time - m_instance.m_last_request_time > 3)
+    if (g_data.m_setting_data.m_full_day != 1)
     {
-        m_instance.m_last_request_time = cur_time;
-
-        if (g_data.m_setting_data.m_full_day != 1)
+        SYSTEMTIME now_time;
+        GetLocalTime(&now_time);
+        if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30))
         {
-            SYSTEMTIME now_time;
-            GetLocalTime(&now_time);
-            // CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
-            // CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
-            if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30))
-            {
-                CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
-                g_data.ResetText();
-                return 0;
-            }
+            CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
+            g_data.ResetText();
+            return 0;
         }
-
-        // 禁用选项设置中的“更新”按钮
-        m_instance.DisableUpdateCommand();
-
-        g_data.RequestRealtimeData();
-
-        // 启用选项设置中的“更新”按钮
-        m_instance.EnableUpdateCommand();
     }
+
+    // 禁用选项设置中的“更新”按钮
+    m_instance.DisableUpdateCommand();
+
+    g_data.RequestRealtimeData();
+
+    // 启用选项设置中的“更新”按钮
+    m_instance.EnableUpdateCommand();
+
     return 0;
 }
 
@@ -97,17 +90,12 @@ const wchar_t *Stock::GetTooltipInfo()
 
 void Stock::DataRequired()
 {
-    static time_t last_req_time{-1};
-    time_t cur_time = time(nullptr);
-    if (cur_time - m_instance.m_last_request_time > 3)
-    {
-        last_req_time = cur_time;
-        SendStockInfoRequest();
-    }
+    SendStockInfoRequest();
+
     std::lock_guard<std::mutex> lock(m_wndMutex);
     if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
     {
-        m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
+        m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, (WPARAM)time(nullptr), 0);
         // DWORD_PTR dwResult = 0;
         // LRESULT lr = ::SendMessageTimeout(
         //     m_pFloatingWnd->GetSafeHwnd(),  // 目标窗口句柄

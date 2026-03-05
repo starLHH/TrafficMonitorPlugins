@@ -62,8 +62,7 @@ private:
     vector<StockItem> m_items;
 
     bool m_is_thread_runing{};
-    CManagerDialog *m_option_dlg{};         // 保存选项设置对话框的句柄
-    unsigned __int64 m_last_request_time{}; // 上次请求的时间
+    CManagerDialog *m_option_dlg{}; // 保存选项设置对话框的句柄
     CMenu m_menu;
 
     std::mutex m_wndMutex;

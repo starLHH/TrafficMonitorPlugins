@@ -33,15 +33,9 @@ LRESULT CFloatingWnd::OnUpdateStatus(WPARAM wParam, LPARAM lParam)
 
 LRESULT CFloatingWnd::OnRequestData(WPARAM wParam, LPARAM lParam)
 {
-    time_t req_time = (time_t)wParam;
-    if (req_time)
+    if (wParam)
     {
-        if (req_time - m_last_request_time > 10)
-        {
-            m_last_request_time = req_time;
-            // 开始网络请求
-            RequestData();
-        }
+        RequestData();
         loading_state_txt += L".";
         Invalidate();
     }
