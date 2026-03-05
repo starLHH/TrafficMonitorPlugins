@@ -73,8 +73,9 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 
     stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
     stockData->realTimeData.Load(key, data_arr);
-    // 期货(hf_)名称在最后一列，覆盖默认用首列
-    if (key.find(kHF) == 0 && data_arr.size() >= _DATA_LEN_HF)
+    // 期货(hf_)及未匹配类型：名称在最后一列(索引13)，覆盖默认用首列
+    bool isHfOrUnknown = (key.find(kHF) == 0) || (key.find(kSH) != 0 && key.find(kSZ) != 0 && key.find(kBJ) != 0 && key.find(kHK) != 0 && key.find(kMG) != 0);
+    if (isHfOrUnknown && data_arr.size() >= _DATA_LEN_HF)
     {
       stockData->info.displayName = CCommon::StrToUnicode(data_arr[13].c_str());
     }
@@ -105,10 +106,9 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   {
     LoadHK(data_arr, data_size);
   }
-  else if (key.find(kHF) == 0)
+  else
   {
-    LoadHF(data_arr, data_size);
-  }else{
+    // hf_ 及未匹配类型(如 gds_AUTD)均按新浪期货/贵金属同格式解析
     LoadHF(data_arr, data_size);
   }
 
