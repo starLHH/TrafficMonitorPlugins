@@ -265,6 +265,20 @@ void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString *
   Stock::Instance().UpdateKLine();
 }
 
+void STOCK::StockMarket::LoadTimelineDataByJsonNf(std::wstring stock_id, CString *pData)
+{
+  auto data = g_data.GetStockData(stock_id);
+  {
+    std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+    data->clearTimelinePoint();
+    if (pData)
+    {
+      data->addTimelinePointFromFuturesJson(*pData);
+    }
+  }
+  Stock::Instance().UpdateKLine();
+}
+
 std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
 {
   std::wstringstream wss;
@@ -378,4 +392,56 @@ void STOCK::StockData::addTimelinePoint(const CString &json_data)
       }
     }
   }
+}
+
+// 新浪内盘期货 K 线接口返回: [[时间,开,高,低,收,量],...]，转为分时点(用收价、量、均价=(o+h+l+c)/4)
+void STOCK::StockData::addTimelinePointFromFuturesJson(const CString &json_data)
+{
+  std::string _json_data = CCommon::UnicodeToStr(json_data);
+  yyjson_doc *doc = yyjson_read(_json_data.c_str(), _json_data.size(), 0);
+  if (doc == nullptr)
+    return;
+  yyjson_val *root = yyjson_doc_get_root(doc);
+  if (root == nullptr || !yyjson_is_arr(root))
+  {
+    yyjson_doc_free(doc);
+    return;
+  }
+  size_t idx, max;
+  yyjson_val *item;
+  yyjson_arr_foreach(root, idx, max, item)
+  {
+    if (item == nullptr || !yyjson_is_arr(item) || yyjson_arr_size(item) < 6)
+      continue;
+    yyjson_val *v0 = yyjson_arr_get(item, 0);
+    yyjson_val *v1 = yyjson_arr_get(item, 1);
+    yyjson_val *v2 = yyjson_arr_get(item, 2);
+    yyjson_val *v3 = yyjson_arr_get(item, 3);
+    yyjson_val *v4 = yyjson_arr_get(item, 4);
+    yyjson_val *v5 = yyjson_arr_get(item, 5);
+    if (v0 == nullptr || v1 == nullptr || v4 == nullptr || v5 == nullptr)
+      continue;
+    const char *time_str = yyjson_get_str(v0);
+    Price open_p = 0, high_p = 0, low_p = 0, close_p = 0;
+    Volume vol = 0;
+    if (time_str == nullptr)
+      continue;
+    if (yyjson_is_str(v1))
+      open_p = static_cast<Price>(std::stod(yyjson_get_str(v1)));
+    if (v2 && yyjson_is_str(v2))
+      high_p = static_cast<Price>(std::stod(yyjson_get_str(v2)));
+    if (v3 && yyjson_is_str(v3))
+      low_p = static_cast<Price>(std::stod(yyjson_get_str(v3)));
+    if (yyjson_is_str(v4))
+      close_p = static_cast<Price>(std::stod(yyjson_get_str(v4)));
+    if (yyjson_is_str(v5))
+      vol = static_cast<Volume>(std::stoul(yyjson_get_str(v5)));
+    TimelinePoint point;
+    point.time = time_str;
+    point.price = close_p;
+    point.volume = vol;
+    point.averagePrice = (open_p + high_p + low_p + close_p) / 4.0;
+    addTimelinePoint(point);
+  }
+  yyjson_doc_free(doc);
 }

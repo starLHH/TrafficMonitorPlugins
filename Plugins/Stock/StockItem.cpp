@@ -158,7 +158,8 @@ int StockItem::OnMouseEvent(MouseEventType type, int x, int y, void *hWnd, int f
 
     case IPluginItem::MT_LCLICKED:
     {
-        if (stock_id.find(kSZ) == 0 || stock_id.find(kBJ) == 0 || stock_id.find(kSH) == 0)
+        // A 股(sh/sz/bj)与内盘期货(nf_)支持 K 线/分时悬浮窗；hf_ 等外盘暂无分时接口
+        if (stock_id.find(kSZ) == 0 || stock_id.find(kBJ) == 0 || stock_id.find(kSH) == 0 || stock_id.find(kNF) == 0)
         {
             CPoint ptScreen = CPoint(x, y);
             Stock::Instance().ShowFloatingWnd(hWnd, ptScreen, stock_id);

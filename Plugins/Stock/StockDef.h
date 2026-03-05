@@ -206,6 +206,8 @@ namespace STOCK
     }
 
     void addTimelinePoint(const CString &json_data);
+    // 新浪内盘期货分时：JSON 为二维数组 [[时间,开,高,低,收,量],...]
+    void addTimelinePointFromFuturesJson(const CString &json_data);
 
     // 获取分时走势数据
     STOCK::TimelineData *getTimelineData()
@@ -223,6 +225,7 @@ namespace STOCK
   public:
     void LoadRealtimeDataByJson(std::string data);
     void LoadTimelineDataByJson(std::wstring stock_id, CString *data);
+    void LoadTimelineDataByJsonNf(std::wstring stock_id, CString *data);
 
     void ClearRealtimeData()
     {

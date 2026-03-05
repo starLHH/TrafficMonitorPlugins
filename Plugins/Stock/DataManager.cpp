@@ -195,8 +195,42 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
     {
         TRACE(L"RequestTimelineData...\n");
 
+        // 内盘期货(nf_): 新浪期货 5 分钟 K 线接口，symbol 去掉 nf_ 前缀(如 nf_AU0 -> AU0)
+        if (stock_id.find(L"nf_") == 0)
+        {
+            std::wstring symbol = stock_id.substr(3);
+            std::wstring url{L"http://stock2.finance.sina.com.cn/futures/api/json.php/IndexService.getInnerFuturesMiniKLine5m?symbol="};
+            url += symbol;
+            CCommon::WriteLog(CCommon::UnicodeToStr(url.c_str(), true).c_str(), m_log_path.c_str());
+
+            CString strHeaders = _T("Referer: https://finance.sina.com.cn/futures/");
+            CInternetSession *session = new CInternetSession(WEB_USERAGENT);
+            CHttpFile *pFile = (CHttpFile *)session->OpenURL(CString(url.c_str()), 1, INTERNET_FLAG_TRANSFER_ASCII, strHeaders, strHeaders.GetLength());
+
+            DWORD dwStatusCode;
+            pFile->QueryInfoStatusCode(dwStatusCode);
+
+            if (dwStatusCode == HTTP_STATUS_OK)
+            {
+                CString strData;
+                char szBuffer[1025];
+                int nRead;
+                while ((nRead = pFile->Read(szBuffer, 1024)) > 0)
+                {
+                    szBuffer[nRead] = 0;
+                    strData += CString(szBuffer);
+                }
+                stockMarket.LoadTimelineDataByJsonNf(stock_id, &strData);
+            }
+
+            pFile->Close();
+            delete pFile;
+            session->Close();
+            return;
+        }
+
+        // A 股(sh/sz/bj): 新浪分时 getMinlineData
         std::wstring url{L"https://cn.finance.sina.com.cn/minline/getMinlineData?"};
-        // https://cn.finance.sina.com.cn/minline/getMinlineData?symbol=sz000100&version=7.11.0&dpc=1
         std::vector<std::wstring> params;
         params.push_back(L"symbol=" + stock_id);
         params.push_back(L"version=7.11.0");
@@ -205,7 +239,6 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
         url += CCommon::vectorJoinString(params, L"&");
         CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
 
-        // CString strHeaders = L"Referer: https://finance.sina.com.cn/realstock/company/" + m_stock_id + L"/nc.shtml";
         std::wstring strHeaders{L"Referer: https://finance.sina.com.cn/realstock/company/"};
         strHeaders += stock_id;
         strHeaders += L"/nc.shtml";
@@ -231,7 +264,6 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
             stockMarket.LoadTimelineDataByJson(stock_id, &strData);
         }
 
-        // 清理资源
         pFile->Close();
         delete pFile;
         session->Close();
