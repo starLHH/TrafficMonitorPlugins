@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include <vector>
@@ -162,7 +162,7 @@ std::shared_ptr<StockData> CDataManager::GetStockData(const std::wstring &code)
 
 static double generateRandomDouble()
 {
-    srand(time(nullptr)); // 设置随机种子
+    srand(static_cast<unsigned int>(time(nullptr))); // 设置随机种子
     double random = (double)rand() / RAND_MAX;
     std::cout << std::fixed << std::setprecision(16);
     return random;
