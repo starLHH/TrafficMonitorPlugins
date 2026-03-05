@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -164,9 +164,9 @@ CPoint CFloatingWnd::Stock2Point(int x, int y, int w, int h, float unitY, const 
         {
             countX -= after12ClockOffset;
         }
-        p.x = w / totalMinutes * countX;
+        p.x = static_cast<LONG>(w / totalMinutes * countX);
     }
-    p.y = (item.price - prevClosePrice) * unitY * 100;
+    p.y = static_cast<LONG>((item.price - prevClosePrice) * unitY * 100);
     return p;
 }
 
@@ -227,13 +227,13 @@ void CFloatingWnd::OnPaint()
 
     if (timelinePoint.size() > 0)
     {
-        float halfH = h / 2.0;
+        float halfH = static_cast<float>(h / 2.0);
 
         STOCK::Price priceLimit = realtimeData.priceLimit;
-        float unitY = priceLimit != 0 ? halfH / (priceLimit * 100) : 0;
+        float unitY = priceLimit != 0 ? static_cast<float>(halfH / (priceLimit * 100)) : 0.0f;
 
         memDC.SetTextColor(RGB(179, 64, 65));
-        float upperLimitPrice = realtimeData.prevClosePrice + priceLimit;
+        float upperLimitPrice = static_cast<float>(realtimeData.prevClosePrice + priceLimit);
         CString upperLimitTxt;
         upperLimitTxt.Format(_T("%.2f"), upperLimitPrice);
         CRect upperLimitTxtRect{rect};
@@ -247,7 +247,7 @@ void CFloatingWnd::OnPaint()
         memDC.DrawText(upperLimitRateTxt, upperLimitRateTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
 
         memDC.SetTextColor(RGB(44, 144, 51));
-        float lowerLimitPrice = realtimeData.prevClosePrice - priceLimit;
+        float lowerLimitPrice = static_cast<float>(realtimeData.prevClosePrice - priceLimit);
         CString lowerLimitTxt;
         lowerLimitTxt.Format(_T("%.2f"), lowerLimitPrice);
         CRect lowerLimitTxtRect{rect};
@@ -274,12 +274,12 @@ void CFloatingWnd::OnPaint()
             dataPoints.push_back(p);
         }
 
-        int startY = halfH - (realtimeData.openPrice - realtimeData.prevClosePrice) * unitY * 100;
+        int startY = static_cast<int>(halfH - (realtimeData.openPrice - realtimeData.prevClosePrice) * unitY * 100);
         memDC.MoveTo(x, startY);
         for (int i = 0; i < dataPoints.size(); i++)
         {
             int pX = dataPoints[i].x;
-            int pY = halfH - dataPoints[i].y;
+            int pY = static_cast<int>(halfH - dataPoints[i].y);
             memDC.LineTo(pX, pY);
         }
     }

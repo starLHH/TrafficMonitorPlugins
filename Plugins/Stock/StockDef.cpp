@@ -247,13 +247,9 @@ std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
   std::wstringstream wss;
   if (info.is_ok)
   {
-    // if (include_name)
-    //   wss << info.displayName << ": ";
-    wss << realTimeData.displayPrice;
-    // // hf_/gds_ 等期货贵金属仅显示价格，不显示百分比
-    // bool isHfOrUnknown = (info.code.find(kHF) == 0) || (info.code.find(kSH) != 0 && info.code.find(kSZ) != 0 && info.code.find(kBJ) != 0 && info.code.find(kHK) != 0 && info.code.find(kMG) != 0);
-    // if (!isHfOrUnknown)
-      // wss << ' ' << realTimeData.displayFluctuation;
+    if (include_name)
+      wss << info.displayName << ": ";
+    wss << realTimeData.displayPrice << ' ';
   }
   else
   {

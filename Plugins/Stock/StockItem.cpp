@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockItem.h"
 #include "DataManager.h"
 #include "Stock.h"
@@ -56,12 +56,20 @@ bool StockItem::IsCustomDraw() const
 int StockItem::GetItemWidthEx(void *hDC) const
 {
     CDC *pDC = CDC::FromHandle((HDC)hDC);
-    int width = pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx;
+    int textWidth = pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx;
+    // 左右留白，避免任务栏中文字贴边或被裁切；与 Battery 等插件一致做 DPI 缩放
+    int padding = g_data.DPI(8);
+    int width = textWidth + padding * 2;
+    int minWidth = g_data.DPI(60);
+    if (width < minWidth)
+        width = minWidth;
 
     char buff[32];
     sprintf_s(buff, "GetItemWidthEx %d", width);
 
     CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
+    //输出下text内容
+    LogX(L"text: %s\n", g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str());
     LogX(L"GetItemWidthEx: %d\n", width);
     return width;
 }
