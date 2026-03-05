@@ -143,7 +143,7 @@ const wchar_t *StockItem::GetItemValueSampleText() const
     //    {
     //        return L"0000000.00 +00.00%";
     //    }
-    return L"";
+    return L"0000.88";
 }
 
 int StockItem::OnMouseEvent(MouseEventType type, int x, int y, void *hWnd, int flag)

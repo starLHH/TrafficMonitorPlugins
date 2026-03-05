@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
+#include <cmath>
 #include <memory>
 #include "Common.h"
 #include "DataManager.h"
@@ -223,11 +224,25 @@ void CFloatingWnd::OnPaint()
     {
         float halfH = static_cast<float>(h / 2.0);
 
-        STOCK::Price priceLimit = realtimeData.priceLimit;
-        float unitY = priceLimit != 0 ? static_cast<float>(halfH / (priceLimit * 100)) : 0.0f;
+        // 期货(nf_)可能先打开 K 线再拉实时，或实时接口无数据，用分时数据推算参考价与涨跌幅度
+        STOCK::Price drawPrevClose = realtimeData.prevClosePrice;
+        STOCK::Price drawPriceLimit = realtimeData.priceLimit;
+        if (drawPriceLimit <= 0.0 || drawPrevClose <= 0.0)
+        {
+            drawPrevClose = timelinePoint[0].price;
+            STOCK::Price range = 0.01;
+            for (const auto &pt : timelinePoint)
+            {
+                STOCK::Price d = static_cast<STOCK::Price>(std::fabs(pt.price - drawPrevClose));
+                if (d > range)
+                    range = d;
+            }
+            drawPriceLimit = range;
+        }
+        float unitY = drawPriceLimit != 0 ? static_cast<float>(halfH / (drawPriceLimit * 100)) : 0.0f;
 
         memDC.SetTextColor(RGB(179, 64, 65));
-        float upperLimitPrice = static_cast<float>(realtimeData.prevClosePrice + priceLimit);
+        float upperLimitPrice = static_cast<float>(drawPrevClose + drawPriceLimit);
         CString upperLimitTxt;
         upperLimitTxt.Format(_T("%.2f"), upperLimitPrice);
         CRect upperLimitTxtRect{rect};
@@ -235,13 +250,13 @@ void CFloatingWnd::OnPaint()
         memDC.DrawText(upperLimitTxt, upperLimitTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
 
         CString upperLimitRateTxt;
-        upperLimitRateTxt.Format(_T("%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
+        upperLimitRateTxt.Format(_T("%.2f%%"), drawPrevClose > 0 ? (drawPriceLimit * 100.0 / drawPrevClose) : 0.0);
         CRect upperLimitRateTxtRect{rect};
         upperLimitRateTxtRect.left = w - (upperLimitRateTxtRect.left + memDC.GetTextExtent(upperLimitRateTxt).cx);
         memDC.DrawText(upperLimitRateTxt, upperLimitRateTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
 
         memDC.SetTextColor(RGB(44, 144, 51));
-        float lowerLimitPrice = static_cast<float>(realtimeData.prevClosePrice - priceLimit);
+        float lowerLimitPrice = static_cast<float>(drawPrevClose - drawPriceLimit);
         CString lowerLimitTxt;
         lowerLimitTxt.Format(_T("%.2f"), lowerLimitPrice);
         CRect lowerLimitTxtRect{rect};
@@ -249,14 +264,14 @@ void CFloatingWnd::OnPaint()
         memDC.DrawText(lowerLimitTxt, lowerLimitTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
 
         CString lowerLimitRateTxt;
-        lowerLimitRateTxt.Format(_T("-%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
+        lowerLimitRateTxt.Format(_T("-%.2f%%"), drawPrevClose > 0 ? (drawPriceLimit * 100.0 / drawPrevClose) : 0.0);
         CRect lowerLimitRateTxtRect{rect};
         lowerLimitRateTxtRect.left = w - (lowerLimitRateTxtRect.left + memDC.GetTextExtent(lowerLimitRateTxt).cx);
         memDC.DrawText(lowerLimitRateTxt, lowerLimitRateTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
 
         memDC.SetTextColor(RGB(154, 151, 157));
         CString middleTxt;
-        middleTxt.Format(_T("%.2f"), realtimeData.prevClosePrice);
+        middleTxt.Format(_T("%.2f"), drawPrevClose);
         CRect middleTxtRect{rect};
         middleTxtRect.right = middleTxtRect.left + memDC.GetTextExtent(middleTxt).cx;
         memDC.DrawText(middleTxt, middleTxtRect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
@@ -267,13 +282,14 @@ void CFloatingWnd::OnPaint()
         for (size_t i = 0; i < timelinePoint.size(); i++)
         {
             const STOCK::TimelinePoint &item = timelinePoint[i];
-            CPoint p = Stock2Point(x, y, w, h, unitY, item, realtimeData.prevClosePrice);
+            CPoint p = Stock2Point(x, y, w, h, unitY, item, drawPrevClose);
             if (useIndexX)
                 p.x = (timelinePoint.size() <= 1) ? x : (x + (int)(w * (double)i / (timelinePoint.size() - 1)));
             dataPoints.push_back(p);
         }
 
-        int startY = static_cast<int>(halfH - (realtimeData.openPrice - realtimeData.prevClosePrice) * unitY * 100);
+        STOCK::Price startPrice = (realtimeData.openPrice > 0 && realtimeData.prevClosePrice > 0) ? realtimeData.openPrice : timelinePoint[0].price;
+        int startY = static_cast<int>(halfH - (startPrice - drawPrevClose) * unitY * 100);
         memDC.MoveTo(x, startY);
         for (size_t i = 0; i < dataPoints.size(); i++)
         {
