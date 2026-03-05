@@ -209,7 +209,7 @@ void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
   turnover = {convert<Price>(data[11])};
 }
 
-// 新浪期货(hf_)格式: 现价,昨收,今开,?,最高,最低,时间,...,日期,名称
+// 新浪期货(hf_)/贵金属(gds_)格式: 现价,昨收,今开,?,最高,最低,时间,...,日期,名称；gds 昨收常为 0，用今开作参考
 void STOCK::RealTimeData::LoadHF(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_HF)
@@ -223,6 +223,9 @@ void STOCK::RealTimeData::LoadHF(std::vector<std::string> data, size_t size)
   lowPrice = {convert<Price>(data[5])};
   volume = {convert<Volume>(data[10])};
   turnover = {convert<Amount>(data[11])};
+  // gds_AUTD 等接口昨收常为 0，用今开作为涨跌幅参考
+  if (prevClosePrice <= 0.0 && openPrice > 0.0)
+    prevClosePrice = openPrice;
 }
 
 void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString *pData)
@@ -244,9 +247,13 @@ std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
   std::wstringstream wss;
   if (info.is_ok)
   {
-    if (include_name)
-      wss << info.displayName << ": ";
-    wss << realTimeData.displayPrice << ' ' << realTimeData.displayFluctuation;
+    // if (include_name)
+    //   wss << info.displayName << ": ";
+    wss << realTimeData.displayPrice;
+    // // hf_/gds_ 等期货贵金属仅显示价格，不显示百分比
+    // bool isHfOrUnknown = (info.code.find(kHF) == 0) || (info.code.find(kSH) != 0 && info.code.find(kSZ) != 0 && info.code.find(kBJ) != 0 && info.code.find(kHK) != 0 && info.code.find(kMG) != 0);
+    // if (!isHfOrUnknown)
+      // wss << ' ' << realTimeData.displayFluctuation;
   }
   else
   {
