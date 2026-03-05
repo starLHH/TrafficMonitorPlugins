@@ -67,7 +67,7 @@ int StockItem::GetItemWidthEx(void *hDC) const
     char buff[32];
     sprintf_s(buff, "GetItemWidthEx %d", width);
 
-    CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
+    // CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
     //输出下text内容
     LogX(L"text: %s\n", g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str());
     LogX(L"GetItemWidthEx: %d\n", width);

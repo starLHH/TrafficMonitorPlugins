@@ -20,7 +20,7 @@ API_BASE = "https://hq.sinajs.cn/?"
 REFERER = "https://finance.sina.com.cn"
 
 # 默认股票代码（与 C++ 版一致）
-DEFAULT_CODES = ["sz000759", "hf_XAU", "gds_AUTD"]
+DEFAULT_CODES = ["sz000759", "hf_XAU", "nf_AU0"]
 
 
 def build_url(codes):

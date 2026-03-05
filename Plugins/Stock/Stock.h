@@ -14,6 +14,7 @@ constexpr auto kHK = L"rt_hk"; // 香港
 constexpr auto kMG = L"gb_";   // 美国
 constexpr auto kBJ = L"bj";    // 北京
 constexpr auto kHF = L"hf_";   // 期货(新浪格式)
+constexpr auto kNF = L"nf_";   // 内盘期货(新浪格式，如 nf_AU0 黄金连续)
 
 const std::vector<CString> StockTypeSet{kSH, kSZ, kHK, kMG, kBJ};
 

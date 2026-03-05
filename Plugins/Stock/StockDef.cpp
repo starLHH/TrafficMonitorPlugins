@@ -20,6 +20,8 @@ constexpr auto _DATA_LEN_BJ = 39;
 constexpr auto _DATA_LEN_HK = 25;
 // 期货数据长度(新浪 hf_ 格式，如 hf_XAU)
 constexpr auto _DATA_LEN_HF = 14;
+// 内盘期货数据长度(新浪 nf_ 格式：名称,提供商,开,高,低,昨收,买,卖,最新,结算,昨结,买量,卖量,持仓,成交量,...)
+constexpr auto _DATA_LEN_NF = 15;
 
 using namespace STOCK;
 
@@ -73,9 +75,8 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 
     stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
     stockData->realTimeData.Load(key, data_arr);
-    // 期货(hf_)及未匹配类型：名称在最后一列(索引13)，覆盖默认用首列
-    bool isHfOrUnknown = (key.find(kHF) == 0) || (key.find(kSH) != 0 && key.find(kSZ) != 0 && key.find(kBJ) != 0 && key.find(kHK) != 0 && key.find(kMG) != 0);
-    if (isHfOrUnknown && data_arr.size() >= _DATA_LEN_HF)
+    // 期货(hf_)：名称在最后一列(索引13)，覆盖默认首列
+    if (key.find(kHF) == 0 && data_arr.size() >= _DATA_LEN_HF)
     {
       stockData->info.displayName = CCommon::StrToUnicode(data_arr[13].c_str());
     }
@@ -105,6 +106,10 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   else if (key.find(kHK) == 0)
   {
     LoadHK(data_arr, data_size);
+  }
+  else if (key.find(kNF) == 0)
+  {
+    LoadNF(data_arr, data_size);
   }
   else
   {
@@ -207,6 +212,24 @@ void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
   lowPrice = {convert<Price>(data[5])};
   volume = {convert<Volume>(data[12])};
   turnover = {convert<Price>(data[11])};
+}
+
+// 新浪内盘期货(nf_)格式: 名称,提供商,开盘,最高,最低,昨收,买价,卖价,最新,结算,昨结,买量,卖量,持仓,成交量,...
+void STOCK::RealTimeData::LoadNF(std::vector<std::string> data, size_t size)
+{
+  if (size < _DATA_LEN_NF)
+  {
+    return;
+  }
+  openPrice = {convert<Price>(data[2])};
+  highPrice = {convert<Price>(data[3])};
+  lowPrice = {convert<Price>(data[4])};
+  prevClosePrice = {convert<Price>(data[5])};
+  currentPrice = {convert<Price>(data[8])};
+  volume = {convert<Volume>(data[14])};
+  // 买一/卖一
+  bidLevels[0] = {{convert<Price>(data[6])}, {convert<Volume>(data[11])}};
+  askLevels[0] = {{convert<Price>(data[7])}, {convert<Volume>(data[12])}};
 }
 
 // 新浪期货(hf_)/贵金属(gds_)格式: 现价,昨收,今开,?,最高,最低,时间,...,日期,名称；gds 昨收常为 0，用今开作参考

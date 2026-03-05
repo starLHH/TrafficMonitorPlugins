@@ -70,6 +70,7 @@ namespace STOCK
     void LoadSZ(std::vector<std::string> data, size_t size);
     void LoadBJ(std::vector<std::string> data, size_t size);
     void LoadHK(std::vector<std::string> data, size_t size);
+    void LoadNF(std::vector<std::string> data, size_t size);
     void LoadHF(std::vector<std::string> data, size_t size);
   };
 

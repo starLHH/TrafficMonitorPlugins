@@ -180,7 +180,7 @@ void CDataManager::RequestRealtimeData()
 
     url += CCommon::vectorJoinString(params, L"&");
     CString strHeaders = _T("Referer: https://finance.sina.com.cn");
-    CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
+    // CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
 
     std::string Stock_data;
     if (CCommon::GetURL(url, Stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
